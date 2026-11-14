@@ -1,0 +1,11 @@
+/* Modal from the design system: white card over a 40% ink scrim. */
+.modal { width: min(480px, calc(100% - 32px)); max-height: calc(100% - 32px); padding: 0; border: 0; border-radius: var(--radius-lg); background: var(--white); color: var(--ink); box-shadow: var(--shadow-floating); }
+.modal::backdrop { background: rgb(30 30 30 / 40%); }
+.modal-box { display: flex; flex-direction: column; }
+.modal-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px 20px 0; }
+.modal-header h2 { font-size: 20px; line-height: 28px; font-weight: 600; }
+.modal-header .icon-button { margin-right: -6px; }
+.modal-description { padding: 12px 20px 20px; font-size: 13px; line-height: 18px; color: var(--gray-600); }
+.modal-content { padding: 0 20px 20px; }
+.modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 20px; border-top: 1px solid var(--gray-200); }
+.modal-footer .button { min-height: 34px; padding-block: 6px; font-size: 13px; }

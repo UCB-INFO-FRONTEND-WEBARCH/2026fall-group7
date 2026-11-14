@@ -1,0 +1,91 @@
+/* Applications list page. Uses the same tokens and shared classes
+   (.surface, .status-badge, .view-tabs) as the Home screen. */
+
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.applications-page { padding-block: 32px 48px; }
+.page-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.page-title { display: flex; align-items: baseline; gap: 16px; }
+.page-title h1 { font-size: var(--text-h1); line-height: 40px; font-weight: 700; letter-spacing: -0.6px; }
+.page-title span { color: var(--gray-600); font-size: 14px; }
+
+/* Search on the left, sort on the right. */
+.list-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.search-field, .sort-field { position: relative; display: flex; align-items: center; color: var(--gray-600); }
+.search-field { flex: 0 1 480px; }
+.search-field .icon, .sort-field > .icon:first-of-type { position: absolute; left: 14px; pointer-events: none; }
+.search-field input, .sort-field select {
+  width: 100%; min-height: 44px; border: 1px solid var(--gray-200); border-radius: var(--radius-md);
+  background: var(--white); color: var(--ink); font: inherit;
+}
+.search-field input { padding: 10px 14px 10px 38px; }
+.search-field input::placeholder { color: var(--gray-400); }
+.sort-field select { appearance: none; padding: 10px 40px 10px 38px; font-weight: 500; cursor: pointer; }
+.sort-field .sort-chevron { position: absolute; right: 14px; pointer-events: none; }
+.search-field input:focus-visible, .sort-field select:focus-visible { outline: 2px solid var(--primary-500); outline-offset: 0; border-color: var(--primary-500); }
+
+/* Status filter chips. */
+.filter-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+.filter-chip { min-height: 32px; padding: 5px 12px; border: 1px solid var(--gray-200); border-radius: var(--radius-full); background: var(--white); color: var(--ink); }
+.filter-chip.is-selected { border-color: var(--primary-500); background: var(--primary-100); color: var(--primary-700); }
+
+/* The table. */
+.applications-table-card { overflow: hidden; }
+.applications-table { width: 100%; border-collapse: collapse; }
+.applications-table th { padding: 12px 24px; background: var(--canvas); color: var(--gray-600); font-size: 12px; line-height: 16px; font-weight: 400; text-align: left; border-bottom: 1px solid var(--gray-200); }
+.applications-table td { padding: 16px 24px; border-top: 1px solid var(--gray-200); vertical-align: middle; }
+.applications-table tbody tr:first-child td { border-top: 0; }
+.applications-table th:nth-child(1) { width: 50%; }
+.applications-table th:nth-child(5) { width: 56px; }
+.cell-company { display: flex; align-items: center; gap: 12px; }
+.cell-company .row-link + span { display: block; color: var(--gray-600); font-size: 12px; line-height: 16px; margin-top: 2px; }
+.company-icon { flex: 0 0 36px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--gray-200); border-radius: var(--radius-sm); background: var(--canvas); color: var(--gray-600); }
+.cell-chevron { color: var(--gray-600); text-align: right; }
+
+.deadline-pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: var(--radius-sm); background: var(--gray-100); font-size: 12px; line-height: 16px; white-space: nowrap; }
+.deadline-pill.is-urgent { background: var(--orange-100); color: var(--orange-700); }
+.materials-pill { display: inline-block; padding: 2px 8px; border-radius: var(--radius-full); background: var(--primary-100); color: var(--primary-500); font-size: 12px; line-height: 16px; }
+.applications-table tr.is-clickable { cursor: pointer; }
+.applications-table tr.is-clickable:hover td { background: var(--canvas); }
+.row-link { display: block; padding: 0; border: 0; background: none; font-weight: 500; text-align: left; }
+
+/* Empty states ("No data" and "No results"). */
+.empty-state { min-height: 404px; padding: 48px 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.empty-state h2 { margin-bottom: 8px; font-size: 20px; line-height: 28px; font-weight: 600; }
+.empty-state p { max-width: 360px; margin-bottom: 16px; color: var(--gray-600); }
+
+/* Board: one gray column per status, scrolls sideways. */
+.board { display: flex; gap: 16px; overflow-x: auto; padding-bottom: 8px; scroll-snap-type: x proximity; }
+.board-column { flex: 0 0 232px; min-height: 378px; padding: 12px 8px; border-radius: var(--radius-lg); background: var(--gray-100); scroll-snap-align: start; }
+.board-column-heading { display: flex; align-items: center; gap: 8px; padding: 0 4px 12px; color: var(--gray-600); font-size: 12px; }
+.board-cards { display: flex; flex-direction: column; gap: 8px; }
+.board-card { width: 100%; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 12px; border: 1px solid var(--gray-200); border-radius: var(--radius-md); background: var(--white); box-shadow: var(--shadow-card); text-align: left; }
+.board-card:hover { border-color: var(--primary-300); }
+.board-card strong { font-weight: 500; }
+.board-card-role { color: var(--gray-600); font-size: 12px; line-height: 16px; }
+.board-card-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+
+@media (max-width: 1200px) and (min-width: 901px) {
+  .applications-table th, .applications-table td { padding-inline: 16px; }
+}
+
+/* Phones: no mockup yet, so the table becomes stacked cards. */
+@media (max-width: 900px) {
+  .applications-page { padding-block: 16px 0; }
+  .page-heading { flex-wrap: wrap; }
+  .page-title h1 { display: none; } /* the mobile header already says "Applications" */
+  .list-toolbar { flex-direction: column; align-items: stretch; gap: 8px; }
+  .search-field { flex-basis: auto; }
+  .filter-chips { flex-wrap: nowrap; overflow-x: auto; margin-inline: -16px; padding-inline: 16px; scrollbar-width: none; }
+  .filter-chip { flex-shrink: 0; }
+  .applications-table thead { display: none; }
+  .applications-table, .applications-table tbody { display: block; }
+  .applications-table tr { display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; padding: 14px 16px; border-top: 1px solid var(--gray-200); }
+  .applications-table tbody tr:first-child { border-top: 0; }
+  .applications-table td { display: block; padding: 0; border: 0; }
+  .applications-table .cell-company { display: flex; grid-column: 1; }
+  .applications-table td:nth-child(2) { grid-column: 2; grid-row: 1; align-self: start; }
+  .applications-table td:nth-child(3) { grid-column: 1; padding-left: 48px; }
+  .applications-table td:nth-child(4) { grid-column: 2; justify-self: end; }
+  .applications-table .cell-chevron { display: none; }
+}

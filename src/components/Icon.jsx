@@ -13,6 +13,17 @@ export default function Icon({ name, size = 16, className = '' }) {
     code: <><path d="m8 8-4 4 4 4m8-8 4 4-4 4m-3-10-2 12" /></>,
     left: <path d="m14 6-6 6 6 6" />,
     right: <path d="m10 6 6 6-6 6" />,
+    down: <path d="m6 10 6 6 6-6" />,
+    check: <path d="m5 12 5 5 9-10" strokeWidth="2.4" />,
+    close: <path d="M6 6l12 12M18 6 6 18" />,
+    pencil: <><path d="M4 20h4L19 9l-4-4L4 16z" /><path d="m13.5 6.5 4 4" /></>,
+    trash: <><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" /></>,
+    external: <><path d="M14 4h6v6M20 4l-9 9" /><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" /></>,
+    alert: <><circle cx="12" cy="12" r="8" /><path d="M12 8v5M12 16h.01" /></>,
+    search: <><circle cx="11" cy="11" r="6" /><path d="m20 20-4.5-4.5" /></>,
+    sort: <><path d="M8 4v16m0 0-3-3m3 3 3-3" /><path d="M16 20V4m0 0-3 3m3-3 3 3" /></>,
+    building: <><path d="M5 20V5a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v15" /><path d="M15 10h3a1 1 0 0 1 1 1v9M3 20h18M8 8h1m2 0h1m-4 4h1m2 0h1m-4 4h1m2 0h1" /></>,
+    board: <><rect x="4" y="5" width="16" height="14" rx="2" /><path d="M9.5 5v14M14.5 5v14" /></>,
   }
 
   return (
