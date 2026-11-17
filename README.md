@@ -1,6 +1,6 @@
 # Application Tracker — Group 7
 
-This first draft translates our teammate's Figma Home screenshots into a responsive **Vite + React** interface. It follows the class approach: function components, JSX, CSS, props, and `.map()` for repeated content. The project proposal is in [proposal.md](proposal.md).
+A **Vite + React** app for tracking internship and job applications: deadlines, interview rounds, and the materials each one needs. It started as a static translation of our teammate's Figma screens and is now a working app with routing and saved data. It follows the class approach: function components, JSX, CSS, props, `useState` / `useEffect`, and React Router. The project proposal is in [proposal.md](proposal.md).
 
 ## Run locally
 
@@ -13,90 +13,173 @@ npm.cmd run dev
 
 On macOS/Linux, use `npm install` and `npm run dev`. Open the URL printed by Vite (usually `http://localhost:5173`).
 
+`npm install` also installs **React Router** (`react-router-dom`), which is listed in `package.json`. If you pulled new changes and see *"Failed to resolve import 'react-router-dom'"*, run `npm install` again.
+
 ```powershell
 npm.cmd run build
 ```
 
-`node_modules/` and `dist/` are ignored by Git. Commit the source and `package-lock.json`.
+`node_modules/`, `dist/` and `.env.local` are ignored by Git. Commit the source, `package.json` and `package-lock.json`.
 
-## Three static design previews
+## Pages (routes)
 
-| URL (after starting Vite) | Screenshot represented |
+| URL | Page |
 | --- | --- |
-| `/` | First-time empty Home, also called the landing page in the design handoff |
-| `/?preview=timeline` | Home with sample application events grouped by week |
-| `/?preview=calendar` | November 2026 calendar with November 12 selected |
+| `/` | Home: timeline, calendar, and "Next 7 days" |
+| `/?view=calendar` | Home with the Calendar tab open |
+| `/applications` | All applications as a list (search, status filters, sort) |
+| `/applications?view=board` | The same applications as a board, one column per status |
+| `/applications/:id` | One application: status, materials, notes, key dates, job description |
 
-Resize any preview to see the matching phone layout. There is no separate marketing landing page in the supplied screenshots.
+Any other URL redirects to Home. Because the view is in the URL, refreshing or using the browser's Back button keeps you where you were.
 
-**This is a visual draft.** Add application, Sync, reminder actions, Applications navigation, view buttons, and month/day controls are presentation-only. They have no API calls, click handlers, data mutation, uploads, or persistence. `aria-disabled` communicates this to assistive technology while preserving the mockup's styling. The preview URL chooses a fixed screen; it is not a production router. Home links reload the default empty preview.
+**Deploying:** we use `BrowserRouter`, so the host must send every URL to `index.html`. Otherwise refreshing on `/applications` shows a 404.
+- **Netlify:** add a file `public/_redirects` containing `/*  /index.html  200`
+- **Vercel:** add `vercel.json` containing `{ "rewrites": [{ "source": "/(.*)", "destination": "/" }] }`
 
-The calendar shows correct November **2026** weekdays; some screenshot captions used 2025 weekday names with the 2026 month. Relative deadline copy and week group labels remain fixed demo content, not calculations from today's date.
+## How data is saved (persistence)
+
+Everything is saved in the browser's **localStorage** under the key `group7.applicationTracker.v1`. Only `src/data/storage.js` reads and writes it.
+
+1. `App.jsx` loads the saved data once, into two pieces of state: `applications` and `events` (dates).
+2. Pages change data by calling callback props from App (`updateApplication`, `deleteApplication`, `addEvent`, `deleteEvent`, …). Each creates a **new** array.
+3. A single `useEffect` in App saves both arrays whenever either changes.
+
+Everything else on screen (timeline weeks, "Next 7 days", "Due Nov 8 · in 2 days", "3/5" materials) is **calculated** from that data in `src/data/schedule.js` and is never saved separately.
+
+Saved data shape:
+
+```js
+{
+  applications: [{ id, company, role, status, link, description, notes,
+                   checklist: [{ id, label, done }], createdAt }],
+  events: [{ id, applicationId, kind, date: '2026-11-19', time: '14:00', title, durationMin, googleEventId }]
+}
+// status: Submitted | Under Review | First Round | Second Round | Third Round | Offer | Denied
+// kind:   deadline | interview | assessment | takehome | offer
+```
+
+Each event's `applicationId` points to its application, so one application can have several dates.
+
+### Sample data and resetting
+
+While building, the app starts with **sample applications** (dates relative to today) so screens aren't empty.
+
+- **Before the demo:** set `START_WITH_SAMPLE_DATA = false` in `src/data/storage.js`, then clear the saved data. First-time users should see the Welcome screen.
+- **To reset:** DevTools → Application → Local Storage → delete `group7.applicationTracker.v1` → refresh.
+- localStorage belongs to one browser on one computer. A different browser or laptop starts fresh.
 
 ## Structure and responsibilities
 
 ```text
 src/
-  main.jsx                     React entry point
-  App.jsx                      Composes the page and chooses the static preview
-  App.css                      Layouts, components, and responsive rules
-  styles/tokens.css            Figma colors, fonts, spacing, radii, shadows
+  main.jsx                     React entry point; wraps App in <BrowserRouter>
+  App.jsx                      Saved state, all data changes, routes, Add/Edit modal, toast
+  App.css                      Layout, shared components and controls, responsive rules
+  styles/
+    tokens.css                 Figma colors, fonts, spacing, radii, shadows
+    applications.css           Applications list, board, empty states
+    detail.css                 Application detail page
+    form.css                   Add / Edit application form
+    modal.css                  Modal (design-system popup) and toast
   assets/fonts/                Locally bundled fonts and their licenses
-  data/mockData.js             Sample applications, events, and reminders
+  data/
+    storage.js                 The only file that touches localStorage (+ sample-data switch)
+    sampleData.js              Sample applications/events, dates relative to today
+    schedule.js                Calculated data: timeline weeks, Next 7 days, deadline labels, materials counts
+    records.js                 Builds new records from the Add / Edit form
+    dates.js                   Date helpers ('YYYY-MM-DD' dates, 'HH:MM' times)
+    constants.js               Statuses, date types, colors, icons, default materials
+    ids.js                     makeId() for new records
+  services/
+    googleCalendar.js          Google Calendar API: handoff file with 2 TODOs (see docs/google-calendar.md)
+    jobDetails.js              "Fetch details" from a job link: placeholder (LLM step undecided)
   components/
-    AppHeader.jsx              Desktop navigation and compact mobile header
-    MobileNavigation.jsx       Fixed phone navigation and floating Add button
-    ViewTabs.jsx               Timeline / Calendar selector appearance
-    EmptyWelcome.jsx           Reusable first-application welcome card
-    UpcomingPanel.jsx          Next 7 days and reminder rows
-    EventCard.jsx              Shared event appearance in timeline and calendar
-    TimelineView.jsx           Weekly groups of EventCards
-    CalendarView.jsx           Month grid and selected-day events
+    AppHeader.jsx              Desktop nav (NavLink) and compact mobile header
+    MobileNavigation.jsx       Phone bottom navigation and floating Add button
+    HomePage.jsx               Route "/": schedule + Next 7 days
+    ViewTabs.jsx               Two-option toggle (Timeline/Calendar, List/Board)
+    TimelineView.jsx           Events grouped by week
+    CalendarView.jsx           Month grid, arrows, selected-day events
+    EventCard.jsx              Event card shared by timeline and calendar
+    UpcomingPanel.jsx          "Next 7 days" reminders
+    EmptyWelcome.jsx           First-time welcome card
+    ApplicationsPage.jsx       Route "/applications": list + board, search, filters, sort
+    ApplicationDetailPage.jsx  Route "/applications/:id": puts the cards below together
+    StatusStepper.jsx          Status stages + Offer / Denied menu
+    MaterialsCard.jsx          Materials checklist (tick, rename, delete, add)
+    KeyDatesCard.jsx           Key dates (add, delete, Add to Google Calendar)
+    ApplicationFormModal.jsx   Add application (2 steps) and Edit details (same form)
+    Modal.jsx                  Reusable popup from the design system
+    Toast.jsx                  "Application saved · View" message
+    EmptyState.jsx             "No applications yet" / "No results" block
     Icon.jsx                   Small local SVG icons, no icon dependency
+docs/
+  google-calendar.md           How Google Calendar plugs into the app + the 2 TODOs
 ```
 
 ### How the files work together
 
-The startup flow is `index.html → src/main.jsx → src/App.jsx`. The HTML provides the `root` element, `main.jsx` loads the styles and starts React, and `App.jsx` assembles the components and passes sample data down through props.
+The startup flow is `index.html → src/main.jsx → src/App.jsx`. `main.jsx` wraps the app in `BrowserRouter`; `App.jsx` holds the saved data, defines the routes, and passes data and callbacks down as props.
 
-- **Page composition:** `AppHeader`, `ViewTabs`, `UpcomingPanel`, and `MobileNavigation` provide the surrounding interface. App chooses `EmptyWelcome`, `TimelineView`, or `CalendarView` using the preview URL.
-- **Repeated content:** TimelineView groups events by week; CalendarView builds the month grid and selects events for a fixed sample date. Both reuse EventCard. Icon provides shared SVG drawings.
-- **Data relationships:** `mockData.js` separates applications from events. Each event's `applicationId` points to an application, allowing several events for one application. `.filter()` selects matching events, `.find()` locates their application, and `.map()` renders the lists with stable keys. Upcoming reminders are currently separate sample records; later they should be derived from shared state.
-- **Styles:** `tokens.css` defines the shared design values and local fonts. `App.css` applies them to components and changes the layout at 900px and below. Font files and license documents live in `src/assets/fonts/`.
-- **Future interactions:** App can own shared application/event state and pass callback props to children. View selection and calendar dates are currently fixed previews, and action buttons have no handlers yet.
+- **Routing:** `<Routes>` in App maps URLs to pages. `NavLink` gives the header its active highlight. The detail page reads the id with `useParams()`. Pages navigate with `useNavigate()`. Timeline/Calendar and List/Board use `useSearchParams()`.
+- **One source of truth:** applications and events live only in App state. Views receive them as props and calculate what they show; nothing keeps its own copy.
+- **Forms:** `ApplicationFormModal` is a controlled component. It keeps field values locally, validates (company and role are required), and sends one finished object to App's `saveForm`. Add and Edit share it.
+- **Reusable pieces:** `Modal` (Add/Edit, delete confirmation), `EventCard` (timeline + calendar), `ViewTabs` (both toggles), `EmptyState`, `Icon`.
+- **Styles:** `tokens.css` defines the design values; the other CSS files apply them. Every screen has a phone layout that matches the mobile mockups (900px and below); the Add / Edit form becomes full-screen at 600px and below.
 
 ### Project setup files
 
 | File | Responsibility |
 | --- | --- |
 | `index.html` | Browser document, React root, page title, and viewport settings. |
-| `package.json` | Dependencies and dev/build/preview commands. |
+| `package.json` | Dependencies (React, React Router) and dev/build/preview commands. |
 | `package-lock.json` | Exact installed dependency versions for consistent team installations. |
 | `vite.config.js` | Enables Vite's React plugin. |
-| `.gitignore` | Excludes generated files such as `node_modules/` and `dist/`. |
-| `README.md` | Setup, architecture, previews, and next steps. |
+| `.gitignore` | Excludes generated and local files such as `node_modules/`, `dist/` and `.env.local`. |
+| `README.md` | Setup, routes, persistence, architecture, APIs, and next steps. |
+| `docs/google-calendar.md` | How the Google Calendar integration plugs into the app, and its TODOs. |
 | `proposal.md` | The team's product proposal. |
 
 `node_modules/` is created by installation; `dist/` is created by a production build. Neither is committed to Git.
 
 ### Why organize it this way?
 
-- **Shared data, separate presentation:** application records store company, role, and status. Events refer to an `applicationId`; one application can have several events. Updating one company/status later can update both the timeline and calendar.
-- **Props:** App supplies the sample arrays to the views. Components receive what they display through props instead of selecting or modifying DOM elements.
-- **Reusable cards:** EventCard controls date, role, status badge, and event metadata in both views, avoiding two designs drifting apart.
+- **Shared data, separate presentation:** application records store company, role, status, materials and notes. Events refer to an `applicationId`; one application can have several events. Updating one company/status updates the timeline, calendar, list, board and detail page at once.
+- **One source of truth:** applications and events live only in App state and are saved in one place (`storage.js`). Everything else on screen is calculated from them in `schedule.js`, so nothing can get out of sync.
+- **Props and callbacks:** App supplies the data to the pages and passes callbacks (`updateApplication`, `addEvent`, …) for changes. Components receive what they display through props instead of selecting or modifying DOM elements.
+- **Reusable cards:** EventCard controls date, role, status badge, and event metadata in both the timeline and calendar, avoiding two designs drifting apart. Modal, ViewTabs and EmptyState are reused the same way.
 - **One design system:** `tokens.css` contains the screenshot's palette and typography. Montserrat is used for headings; Google Sans Flex is used for body text and controls. Local fonts avoid runtime network requests.
-- **Responsive composition:** at desktop widths the schedule and upcoming panel form an 8/4-style split with a 24px gutter. At 900px and below, upcoming content moves first, the compact header appears, and bottom navigation/floating action are shown. Extra bottom space prevents the fixed controls from hiding the final event.
+- **Responsive composition:** at desktop widths the schedule and upcoming panel form an 8/4-style split with a 24px gutter. At 900px and below, upcoming content moves first, the compact header appears, and bottom navigation/floating action are shown. Extra bottom space prevents the fixed controls from hiding the final event. The other pages follow the mobile mockups the same way.
 - **Empty placement:** desktop puts the welcome card in the schedule area; mobile puts it under Next 7 days. The same EmptyWelcome component is reused in both locations and CSS displays only the appropriate instance.
 
-## Next implementation phases (not implemented yet)
+## External APIs
 
-1. Move applications/events and the selected view into state in App; pass callback props to controls, following In-Person Project 6.
-2. Build the add/edit application form as a controlled component. Keep field values local to the form and send a validated record to App.
-3. Derive weekly groups, upcoming reminders, and selected-day events from shared state. Do not create independent copies of the same records in each view.
-4. Add Applications navigation and state-driven calendar selection. Keep the existing presentational components.
-5. Add persistence and authenticated Google Calendar integration separately. Job-link extraction and LLM credentials belong behind a server endpoint, not in browser source.
+| API | Status | Where |
+| --- | --- | --- |
+| **Google Calendar** | Buttons, saving `googleEventId`, and converting dates to Google's format are done. **Sign-in and the API request are TODO.** | `src/services/googleCalendar.js`, notes in [docs/google-calendar.md](docs/google-calendar.md) |
+| **LLM: read a job link** | **Not assigned yet; the team will decide whether to build it.** The Add modal's Fetch details flow (loading, success, "couldn't read this link") is built, but the actual link reading is a placeholder that **always fails**, so users fill in the details manually. | `src/services/jobDetails.js` |
 
-No deployment or Git push is performed by this draft. Review the layouts together before adding those later features.
+The class requires **at least one** external API, so Google Calendar alone meets it. The LLM step is optional. Manual entry works fully without it.
+
+### LLM step: open decision
+> **Job-link extraction and LLM credentials belong behind a server endpoint, not in browser source.**
+
+Right now, pasting a link and clicking **Fetch details** shows "Fetching…", then "We couldn't read this link", and the user enters details manually. That's expected, not a bug.
+
+If the team builds it:
+- It needs a small **serverless function** (e.g. on Vercel or Netlify, wherever we deploy) that fetches the job page and asks an LLM to return `{ company, role, deadline, description }`. Browsers can't read most job sites directly (CORS), and **API keys must never be in front-end code**.
+- It needs an **LLM API key**, which usually costs a little per request.
+- Then only `fetchJobDetails(url)` in `src/services/jobDetails.js` changes. The modal already handles every outcome.
+
+If the team skips it, consider simplifying the Add modal so it doesn't offer a feature that always fails, e.g. go straight to the details form and keep the URL as a plain field.
+
+## Next steps
+
+1. **Google Calendar:** fill in the two TODOs in `googleCalendar.js` (see docs/google-calendar.md).
+2. **Decide on the LLM step** (unassigned): build it, or simplify the Add modal (see "LLM step: open decision").
+3. **Small gaps:** edit an existing key date (right now: delete and re-add); decide what the "Upload" reminder button should do (it currently opens the application).
+4. **Before the demo:** turn off sample data (see above), deploy, and add the hosting redirect.
 
 ## Font sources
 

@@ -19,6 +19,7 @@ export default function Icon({ name, size = 16, className = '' }) {
     pencil: <><path d="M4 20h4L19 9l-4-4L4 16z" /><path d="m13.5 6.5 4 4" /></>,
     trash: <><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" /></>,
     external: <><path d="M14 4h6v6M20 4l-9 9" /><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" /></>,
+    link: <><path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1" /><path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1" /></>,
     alert: <><circle cx="12" cy="12" r="8" /><path d="M12 8v5M12 16h.01" /></>,
     search: <><circle cx="11" cy="11" r="6" /><path d="m20 20-4.5-4.5" /></>,
     sort: <><path d="M8 4v16m0 0-3-3m3 3 3-3" /><path d="M16 20V4m0 0-3 3m3-3 3 3" /></>,

@@ -211,7 +211,6 @@ ul { margin: 0; padding: 0; list-style: none; }
 /* --- Added for the live version (chunk 1) --- */
 /* The brand is now a button (navigates Home), so reset button styles. */
 .brand { padding: 0; border: 0; background: transparent; cursor: pointer; }
-
 /* Timeline accent line follows the type of date, like the mockup. */
 .accent-interview { --event-accent: var(--yellow-500); }
 .accent-assessment { --event-accent: var(--primary-500); }
@@ -221,11 +220,28 @@ ul { margin: 0; padding: 0; list-style: none; }
 .schedule-empty { min-height: 160px; padding: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; }
 .schedule-empty p { font-weight: 500; }
 .schedule-empty span, .selected-day-empty { color: var(--gray-600); font-size: 12px; line-height: 16px; }
-
 /* Event cards are buttons now (they open the application). */
 button.event-card { width: 100%; text-align: left; color: inherit; }
 button.event-card:hover { border-color: var(--primary-300); }
 button.event-card-urgent:hover { border-color: var(--orange-500); }
-
 /* Destructive button (Delete, and the delete confirmation modal). */
 .button.button-danger { background: var(--white); border-color: var(--orange-700); color: var(--orange-700); }
+
+/* Shared form controls (detail page + Add / Edit form). */
+.check { flex: 1; display: flex; align-items: center; gap: 12px; cursor: pointer; }
+.check input { width: 18px; height: 18px; margin: 0; accent-color: var(--primary-500); cursor: pointer; }
+.add-row-button, .text-button { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border: 0; border-radius: var(--radius-sm); background: none; font-weight: 500; }
+.add-row-button:hover, .text-button:hover { background: var(--gray-100); }
+.text-input { width: 100%; min-height: 40px; padding: 9px 12px; border: 1px solid var(--gray-200); border-radius: var(--radius-md); background: var(--white); color: var(--ink); font: inherit; }
+.text-input:focus { outline: 2px solid var(--primary-500); outline-offset: 0; border-color: var(--primary-500); }
+.text-input[aria-invalid='true'] { border-color: var(--orange-700); }
+
+/* Text that only shows on desktop or on phones. */
+.mobile-only { display: none; }
+@media (max-width: 900px) {
+  .desktop-only { display: none; }
+  .mobile-only { display: inline; }
+  /* Detail page: "‹ Application" in the phone header. */
+  .mobile-back { display: flex; align-items: center; gap: 8px; }
+  .mobile-back a { display: inline-flex; margin-left: -6px; padding: 4px; }
+}

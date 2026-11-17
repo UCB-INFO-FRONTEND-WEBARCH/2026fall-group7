@@ -1,13 +1,17 @@
+import { NavLink, useLocation } from 'react-router-dom'
 import Icon from './Icon'
 
-export default function MobileNavigation({ page: currentPage, onNavigate }) {
-  const page = currentPage === 'detail' ? 'applications' : currentPage
+const navClass = ({ isActive }) => `mobile-nav-link ${isActive ? 'is-current' : ''}`
+
+export default function MobileNavigation({ onAdd }) {
+  // The detail page mockup has no floating Add button.
+  const isDetail = useLocation().pathname.startsWith('/applications/')
   return (
     <>
-      <button className="button button-primary floating-add" type="button" aria-disabled="true"><Icon name="plus" />Add application</button>
+      {!isDetail && <button className="button button-primary floating-add" type="button" onClick={onAdd}><Icon name="plus" />Add application</button>}
       <nav className="mobile-navigation" aria-label="Mobile navigation">
-        <button className={`mobile-nav-link ${page === 'home' ? 'is-current' : ''}`} type="button" aria-current={page === 'home' ? 'page' : undefined} onClick={() => onNavigate('home')}><Icon name="home" size={20} /><span>Home</span></button>
-        <button className={`mobile-nav-link ${page === 'applications' ? 'is-current' : ''}`} type="button" aria-current={page === 'applications' ? 'page' : undefined} onClick={() => onNavigate('applications')}><Icon name="briefcase" size={20} /><span>Applications</span></button>
+        <NavLink className={navClass} to="/" end><Icon name="home" size={20} /><span>Home</span></NavLink>
+        <NavLink className={navClass} to="/applications"><Icon name="briefcase" size={20} /><span>Applications</span></NavLink>
       </nav>
     </>
   )

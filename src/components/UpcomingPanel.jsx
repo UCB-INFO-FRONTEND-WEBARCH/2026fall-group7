@@ -3,7 +3,7 @@ import EmptyWelcome from './EmptyWelcome'
 import { eventIcons } from '../data/constants'
 
 // `items` comes from getUpcomingItems() in data/schedule.js.
-export default function UpcomingPanel({ items, isEmpty, onOpen }) {
+export default function UpcomingPanel({ items, isEmpty, onOpen, onAdd }) {
   const showAllClear = isEmpty || items.length === 0
 
   return (
@@ -16,7 +16,7 @@ export default function UpcomingPanel({ items, isEmpty, onOpen }) {
         <>
           <div className="surface all-clear"><p>You’re all clear</p><span>Upcoming deadlines, interviews and missing materials show up here.</span></div>
           {/* The mobile mockup places the welcome card above the view tabs. */}
-          {isEmpty && <div className="surface mobile-welcome"><EmptyWelcome /></div>}
+          {isEmpty && <div className="surface mobile-welcome"><EmptyWelcome onAdd={onAdd} /></div>}
         </>
       ) : (
         <ul className="surface upcoming-list">

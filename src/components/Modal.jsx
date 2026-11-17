@@ -8,7 +8,8 @@ import '../styles/modal.css'
 //
 // Usage:
 //   {open && <Modal title="Delete application?" description="..." onClose={...} footer={<>buttons</>} />}
-export default function Modal({ title, description, children, footer, onClose }) {
+// `wide` makes it 560px (the Add / Edit form); `description` can be text or JSX.
+export default function Modal({ title, description, children, footer, onClose, wide = false }) {
   const dialogRef = useRef(null)
 
   // Open as a true modal when it appears; close when it's removed.
@@ -21,7 +22,7 @@ export default function Modal({ title, description, children, footer, onClose })
   return (
     <dialog
       ref={dialogRef}
-      className="modal"
+      className={`modal ${wide ? 'modal-wide' : ''}`}
       aria-labelledby="modal-title"
       // Escape key: let React decide (via onClose) instead of the browser closing it.
       onCancel={e => { e.preventDefault(); onClose() }}
@@ -33,7 +34,7 @@ export default function Modal({ title, description, children, footer, onClose })
           <h2 id="modal-title">{title}</h2>
           <button className="icon-button" type="button" aria-label="Close" onClick={onClose}><Icon name="close" /></button>
         </div>
-        {description && <p className="modal-description">{description}</p>}
+        {description && <div className="modal-description">{description}</div>}
         {children && <div className="modal-content">{children}</div>}
         {footer && <div className="modal-footer">{footer}</div>}
       </div>

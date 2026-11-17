@@ -1,8 +1,10 @@
 import { useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import Icon from './Icon'
 import ViewTabs from './ViewTabs'
 import EmptyState from './EmptyState'
 import { STATUSES, statusTones } from '../data/constants'
+import { formatShortDate, toDateKey } from '../data/dates'
 import { deadlinePill, materialsProgress } from '../data/schedule'
 import '../styles/applications.css'
 
@@ -26,9 +28,15 @@ const MaterialsPill = ({ app }) => {
   return <span className="materials-pill" aria-label={`${done} of ${total} materials ready`}>{done}/{total}</span>
 }
 
-export default function ApplicationsPage({ applications, events, today, onOpen }) {
+// Route "/applications". List vs Board lives in the URL (/applications?view=board).
+export default function ApplicationsPage({ applications, events, today, onAdd }) {
+  const navigate = useNavigate()
+  const onOpen = id => navigate(`/applications/${id}`)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const view = searchParams.get('view') === 'board' ? 'board' : 'list'
+  const setView = next => setSearchParams(next === 'board' ? { view: 'board' } : {}, { replace: true })
+
   // UI-only state: not saved.
-  const [view, setView] = useState('list')
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('All')
   const [sortBy, setSortBy] = useState('deadline')
@@ -42,7 +50,7 @@ export default function ApplicationsPage({ applications, events, today, onOpen }
           <EmptyState
             title="No applications yet"
             text="Track every role you apply to — deadlines, interview rounds and the materials each one needs."
-            action={<button className="button button-primary" type="button" aria-disabled="true"><Icon name="plus" />Add application</button>}
+            action={<button className="button button-primary" type="button" onClick={onAdd}><Icon name="plus" />Add application</button>}
           />
         </div>
       </main>
@@ -75,15 +83,13 @@ export default function ApplicationsPage({ applications, events, today, onOpen }
 
   return (
     <main className="applications-page page-width" id="main-content">
-      <div className="page-heading">
+      {/* One grid for all the controls: desktop and phone arrange them differently (applications.css). */}
+      <div className="list-controls">
         <div className="page-title">
           <h1>Applications</h1>
           <span>{countLabel}</span>
         </div>
-        <ViewTabs view={view} onViewChange={setView} options={VIEW_OPTIONS} label="Applications view" />
-      </div>
-
-      <div className="list-toolbar">
+        <div className="controls-tabs"><ViewTabs view={view} onViewChange={setView} options={VIEW_OPTIONS} label="Applications view" /></div>
         <label className="search-field">
           <Icon name="search" />
           <span className="visually-hidden">Search applications</span>
@@ -97,14 +103,13 @@ export default function ApplicationsPage({ applications, events, today, onOpen }
           </select>
           <Icon name="down" className="sort-chevron" />
         </label>
-      </div>
-
-      <div className="filter-chips" role="group" aria-label="Filter by status">
-        {['All', ...STATUSES].map(status => (
-          <button key={status} type="button" className={`filter-chip ${statusFilter === status ? 'is-selected' : ''}`} aria-pressed={statusFilter === status} onClick={() => setStatusFilter(status)}>
-            {status}
-          </button>
-        ))}
+        <div className="filter-chips" role="group" aria-label="Filter by status">
+          {['All', ...STATUSES].map(status => (
+            <button key={status} type="button" className={`filter-chip ${statusFilter === status ? 'is-selected' : ''}`} aria-pressed={statusFilter === status} onClick={() => setStatusFilter(status)}>
+              {status}
+            </button>
+          ))}
+        </div>
       </div>
 
       {rows.length === 0 ? (
@@ -117,6 +122,7 @@ export default function ApplicationsPage({ applications, events, today, onOpen }
           />
         </div>
       ) : view === 'board' ? (
+        <>
         <div className="board" aria-label="Applications by status">
           {boardColumns.map(column => (
             <section className="board-column" key={column.status} aria-label={`${column.status}, ${column.rows.length}`}>
@@ -134,8 +140,11 @@ export default function ApplicationsPage({ applications, events, today, onOpen }
               </ul>
             </section>
           ))}
-        </div>
+          </div>
+          <p className="board-hint">Swipe sideways to see more columns →</p>
+        </>
       ) : (
+        <>
         <div className="surface applications-table-card">
           <table className="applications-table">
             <thead>
@@ -167,6 +176,28 @@ export default function ApplicationsPage({ applications, events, today, onOpen }
             </tbody>
           </table>
         </div>
+
+        {/* Phones: separate cards instead of the table (CSS shows one or the other). */}
+        <ul className="application-cards">
+          {rows.map(({ app, pill }) => (
+            <li key={app.id} className="surface application-card">
+              <div className="application-card-top">
+                <span className="company-icon"><Icon name="building" size={18} /></span>
+                <div className="application-card-name">
+                  <h2>{app.company}</h2>
+                  <p>{app.role}</p>
+                </div>
+                <StatusBadge status={app.status} />
+              </div>
+              <div className="application-card-pills"><DeadlinePill pill={pill} /><MaterialsPill app={app} /></div>
+              <div className="application-card-footer">
+                <span>Applied {formatShortDate(toDateKey(new Date(app.createdAt)))}</span>
+                <button className="text-button" type="button" onClick={() => onOpen(app.id)} aria-label={`Open ${app.company}`}>Open</button>
+              </div>
+            </li>
+          ))}
+        </ul>
+        </>
       )}
     </main>
   )

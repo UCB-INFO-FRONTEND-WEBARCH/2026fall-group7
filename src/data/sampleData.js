@@ -11,15 +11,18 @@ const checklist = (appId, labels, doneCount) =>
 export function createSampleData() {
   const today = todayKey()
   const day = offset => addDays(today, offset)
-  const created = new Date().toISOString()
 
   const app = (id, company, role, status, materials, done, extra = {}) => ({
     id, company, role, status,
     link: '', description: '', notes: '',
     checklist: checklist(id, materials, done),
-    createdAt: created,
+    createdAt: appliedOn(id),
     ...extra,
   })
+
+  // How many days ago each sample was added ("Applied Oct 28" on phone cards).
+  const appliedDaysAgo = { stripe: 9, figma: 7, ramp: 3, spotify: 16, datadog: 37, airbnb: 31, linear: 13, notion: 23, duolingo: 42, canva: 49 }
+  const appliedOn = id => new Date(`${day(-appliedDaysAgo[id])}T12:00:00`).toISOString()
 
   const applications = [
     app('stripe', 'Stripe', 'Software Engineer Intern', 'Submitted', ['Resume', 'Transcript', 'Work samples', 'Cover letter', 'Portfolio'], 3),

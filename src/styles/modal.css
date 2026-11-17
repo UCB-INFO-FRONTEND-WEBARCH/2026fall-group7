@@ -1,11 +1,43 @@
 /* Modal from the design system: white card over a 40% ink scrim. */
-.modal { width: min(480px, calc(100% - 32px)); max-height: calc(100% - 32px); padding: 0; border: 0; border-radius: var(--radius-lg); background: var(--white); color: var(--ink); box-shadow: var(--shadow-floating); }
+.modal { width: min(480px, calc(100% - 32px)); max-height: calc(100% - 32px); padding: 0; border: 0; border-radius: var(--radius-lg); background: var(--white); color: var(--ink); box-shadow: var(--shadow-floating); overflow: hidden; }
+.modal.modal-wide { width: min(560px, calc(100% - 32px)); }
 .modal::backdrop { background: rgb(30 30 30 / 40%); }
-.modal-box { display: flex; flex-direction: column; }
+/* Header and footer stay put; only the middle scrolls on short screens. */
+.modal-box { display: flex; flex-direction: column; max-height: calc(100vh - 32px); }
 .modal-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px 20px 0; }
+.modal-wide .modal-header { padding: 24px 24px 0; }
 .modal-header h2 { font-size: 20px; line-height: 28px; font-weight: 600; }
+.modal-wide .modal-header h2 { font-size: 24px; line-height: 32px; }
 .modal-header .icon-button { margin-right: -6px; }
 .modal-description { padding: 12px 20px 20px; font-size: 13px; line-height: 18px; color: var(--gray-600); }
-.modal-content { padding: 0 20px 20px; }
-.modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 20px; border-top: 1px solid var(--gray-200); }
+.modal-wide .modal-description { padding: 8px 24px 0; }
+.modal-content { padding: 0 20px 20px; overflow-y: auto; }
+.modal-wide .modal-content { padding: 24px; }
+.modal-footer { display: flex; justify-content: flex-end; align-items: center; gap: 8px; padding: 14px 20px; border-top: 1px solid var(--gray-200); }
+.modal-wide .modal-footer { padding: 16px 24px; }
 .modal-footer .button { min-height: 34px; padding-block: 6px; font-size: 13px; }
+.modal-wide .modal-footer .button { min-height: 40px; font-size: 14px; }
+.modal-footer .footer-start { margin-right: auto; }
+
+/* Toast: dark message at the bottom of the screen. */
+.toast-region { position: fixed; left: 50%; bottom: 32px; transform: translateX(-50%); z-index: 50; width: min(420px, calc(100% - 32px)); pointer-events: none; }
+.toast { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: var(--radius-md); background: var(--ink); color: var(--white); box-shadow: var(--shadow-floating); pointer-events: auto; animation: toast-in 0.2s ease-out; }
+.toast p { flex: 1; }
+.toast button { padding: 0; border: 0; background: none; color: var(--white); font-weight: 500; text-decoration: underline; text-underline-offset: 3px; }
+@keyframes toast-in { from { opacity: 0; transform: translateY(8px); } }
+@media (max-width: 900px) {
+  /* Just above the floating Add button. */
+  .toast-region { bottom: calc(150px + env(safe-area-inset-bottom)); }
+  .toast-detail { display: none; } /* phones: "Application saved · Notion" */
+}
+
+/* Phones: the Add / Edit form fills the screen (mobile mockups). */
+@media (max-width: 600px) {
+  .modal.modal-wide { width: 100%; max-width: 100%; height: 100%; max-height: 100%; border-radius: 0; }
+  .modal-wide .modal-box { height: 100%; max-height: 100%; }
+  .modal-wide .modal-header { padding: 16px 16px 0; }
+  .modal-wide .modal-description { padding: 8px 16px 16px; border-bottom: 1px solid var(--gray-200); }
+  .modal-wide .modal-content { flex: 1; padding: 16px; }
+  .modal-wide .modal-footer { padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); }
+  .modal-wide .modal-footer > .button:only-child { width: 100%; } /* step 1: full-width Cancel */
+}

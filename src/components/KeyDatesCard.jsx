@@ -23,7 +23,7 @@ const TIME_OPTIONS = [
   '23:59',
 ]
 
-export default function KeyDatesCard({ application, events, today, onAdd, onDelete }) {
+export default function KeyDatesCard({ application, events, today, onAdd, onDelete, onAddToGoogle }) {
   const [formOpen, setFormOpen] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
   const [error, setError] = useState('')
@@ -63,14 +63,21 @@ export default function KeyDatesCard({ application, events, today, onAdd, onDele
           const pastNote = past ? (event.kind === 'deadline' ? ' · submitted' : ' · done') : ''
           return (
             <li key={event.id} className={`key-date kind-${event.kind}`}>
-              <span className="reminder-icon"><Icon name={eventIcons[event.kind]} size={17} /></span>
-              <div className="key-date-copy">
-                <p>{eventTitle(event)}</p>
-                <span>{formatWeekdayDate(event.date)}{event.time && ` · ${formatTime(event.time)}`}{pastNote}</span>
-                {/* Google Calendar chunk: create the event, then save its id in googleEventId. */}
-                <button className="calendar-link" type="button" aria-disabled="true"><Icon name="calendar" size={14} />Add to Google Calendar</button>
+              <div className="key-date-main">
+                <span className="reminder-icon"><Icon name={eventIcons[event.kind]} size={17} /></span>
+                <div className="key-date-copy">
+                  <p>{eventTitle(event)}</p>
+                  <span>{formatWeekdayDate(event.date)}{event.time && ` · ${formatTime(event.time)}`}{pastNote}</span>
+                </div>
+                <button className="icon-button" type="button" aria-label={`Delete ${eventTitle(event)}`} onClick={() => onDelete(event.id)}><Icon name="trash" /></button>
               </div>
-              <button className="icon-button" type="button" aria-label={`Delete ${eventTitle(event)}`} onClick={() => onDelete(event.id)}><Icon name="trash" /></button>
+              {/* Its own row under the date, like the mockup. Calls addEventToGoogle in App.jsx;
+                  once added, googleEventId is saved on the event. */}
+              {event.googleEventId ? (
+                <span className="calendar-link is-added"><Icon name="check" size={14} />In Google Calendar</span>
+              ) : (
+                <button className="calendar-link" type="button" onClick={() => onAddToGoogle(event)}><Icon name="calendar" size={14} />Add to Google Calendar</button>
+              )}
             </li>
           )
         })}

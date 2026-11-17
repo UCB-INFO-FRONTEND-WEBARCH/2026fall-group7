@@ -1,46 +1,42 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import AppHeader from './components/AppHeader'
 import MobileNavigation from './components/MobileNavigation'
-import ViewTabs from './components/ViewTabs'
-import EmptyWelcome from './components/EmptyWelcome'
-import UpcomingPanel from './components/UpcomingPanel'
-import TimelineView from './components/TimelineView'
-import CalendarView from './components/CalendarView'
+import HomePage from './components/HomePage'
 import ApplicationsPage from './components/ApplicationsPage'
 import ApplicationDetailPage from './components/ApplicationDetailPage'
+import ApplicationFormModal from './components/ApplicationFormModal'
+import Toast from './components/Toast'
 import { loadData, saveData } from './data/storage'
-import { getUpcomingItems } from './data/schedule'
 import { todayKey } from './data/dates'
+import { createApplication, findDeadline, setDeadline } from './data/records'
+import { createCalendarEvent, isGoogleCalendarConfigured } from './services/googleCalendar'
 
 export default function App() {
-  // Load saved data once, on the first render.
+  //  Saved data 
+  // Load once on the first render; save whenever applications or events change.
   const [initialData] = useState(loadData)
   const [applications, setApplications] = useState(initialData.applications)
   const [events, setEvents] = useState(initialData.events)
 
-  // Persistence: whenever applications or events change, save them.
   useEffect(() => {
     saveData({ applications, events })
   }, [applications, events])
 
-  // UI state: not saved, resets on refresh.
-  const [page, setPage] = useState('home') // 'home' | 'applications' | 'detail'
-  const [selectedId, setSelectedId] = useState(null) // which application the detail page shows
-  const [view, setView] = useState('timeline') // 'timeline' | 'calendar'
+  //  UI state (not saved) 
+  const [form, setForm] = useState(null) // null | { mode: 'add' } | { mode: 'edit', id }
+  const [toast, setToast] = useState(null) // { message, action?, error? }
+  const dismissToast = useCallback(() => setToast(null), [])
 
+  const navigate = useNavigate()
+  const { pathname } = useLocation()
   const today = todayKey()
-  const isEmpty = applications.length === 0
-  const selectedApplication = applications.find(app => app.id === selectedId)
 
-  // ----- Navigation -----
-  function openApplication(id) {
-    setSelectedId(id)
-    setPage('detail')
-    window.scrollTo(0, 0)
-  }
+  // New page -> start at the top.
+  useEffect(() => { window.scrollTo(0, 0) }, [pathname])
 
   // ----- Changes to the data (passed down as callback props) -----
-  // Each one creates a NEW array; React notices, re-renders, and the useEffect above saves.
+  // Each one makes a NEW array; React re-renders and the useEffect above saves.
   function updateApplication(id, changes) {
     setApplications(apps => apps.map(app => (app.id === id ? { ...app, ...changes } : app)))
   }
@@ -48,59 +44,138 @@ export default function App() {
   function deleteApplication(id) {
     setApplications(apps => apps.filter(app => app.id !== id))
     setEvents(evts => evts.filter(event => event.applicationId !== id)) // its dates go too
-    setPage('applications')
+    navigate('/applications')
   }
 
-  function addEvent(event) {
-    setEvents(evts => [...evts, event])
+  const addEvent = event => setEvents(evts => [...evts, event])
+  const updateEvent = (id, changes) => setEvents(evts => evts.map(e => (e.id === id ? { ...e, ...changes } : e)))
+  const deleteEvent = id => setEvents(evts => evts.filter(event => event.id !== id))
+
+  // Add / Edit form (ApplicationFormModal) hands us validated fields.
+  function saveForm(fields) {
+    if (form.mode === 'add') {
+      const { application, events: newEvents } = createApplication(fields)
+      setApplications(apps => [...apps, application])
+      setEvents(evts => [...evts, ...newEvents])
+      setToast({
+        message: `Application saved · ${application.company}`,
+        detail: `, ${application.role}`,
+        action: { label: 'View', onClick: () => navigate(`/applications/${application.id}`) },
+      })
+    } else {
+      const { link, company, role, description, deadline } = fields
+      updateApplication(form.id, { link: link.trim(), company, role, description: description.trim() })
+      setEvents(evts => setDeadline(evts, form.id, deadline))
+      setToast({ message: 'Changes saved' })
+    }
+    setForm(null)
   }
 
-  function deleteEvent(id) {
-    setEvents(evts => evts.filter(event => event.id !== id))
+  //  Google Calendar (see services/googleCalendar.js + docs/google-calendar.md)
+  async function addEventToGoogle(event) {
+    if (!isGoogleCalendarConfigured()) {
+      setToast({ message: 'Google Calendar isn’t connected yet.', error: true })
+      return
+    }
+    try {
+      const application = applications.find(app => app.id === event.applicationId)
+      const googleEventId = await createCalendarEvent(event, application)
+      updateEvent(event.id, { googleEventId }) // saved, so it's never added twice
+      setToast({ message: 'Added to Google Calendar' })
+    } catch (error) {
+      console.error(error)
+      setToast({ message: 'Couldn’t add to Google Calendar. Try again.', error: true })
+    }
   }
 
-  // If the open application was deleted, fall back to the list.
-  const currentPage = page === 'detail' && !selectedApplication ? 'applications' : page
+  async function syncAllToGoogle() {
+    if (!isGoogleCalendarConfigured()) {
+      setToast({ message: 'Google Calendar isn’t connected yet.', error: true })
+      return
+    }
+    // Upcoming dates that aren't in Google Calendar yet.
+    const toSync = events.filter(e => !e.googleEventId && e.date >= today)
+    let added = 0
+    for (const event of toSync) {
+      try {
+        const application = applications.find(app => app.id === event.applicationId)
+        const googleEventId = await createCalendarEvent(event, application)
+        updateEvent(event.id, { googleEventId })
+        added++
+      } catch (error) {
+        console.error(error)
+      }
+    }
+    setToast({
+      message: toSync.length === 0 ? 'Everything is already in Google Calendar' : `Added ${added} of ${toSync.length} dates to Google Calendar`,
+      error: added < toSync.length,
+    })
+  }
+
+  const openAddForm = () => setForm({ mode: 'add' })
+  const shared = { applications, events, today, onAdd: openAddForm }
+  const editing = form?.mode === 'edit' && applications.find(app => app.id === form.id)
 
   return (
-    <div className={`app-shell ${isEmpty && currentPage === 'home' ? 'is-empty' : ''}`}>
+    <div className={`app-shell ${applications.length === 0 && pathname === '/' ? 'is-empty' : ''}`}>
       <a className="skip-link" href="#main-content">Skip to content</a>
-      <AppHeader page={currentPage} onNavigate={setPage} />
+      <AppHeader onAdd={openAddForm} onSync={syncAllToGoogle} />
 
-      {currentPage === 'detail' ? (
-        <ApplicationDetailPage
-          key={selectedApplication.id}
-          application={selectedApplication}
-          events={events}
-          today={today}
-          onBack={() => setPage('applications')}
-          onUpdate={updateApplication}
-          onDelete={deleteApplication}
-          onAddEvent={addEvent}
-          onDeleteEvent={deleteEvent}
+      <Routes>
+        <Route path="/" element={<HomePage {...shared} />} />
+        <Route path="/applications" element={<ApplicationsPage {...shared} />} />
+        <Route
+          path="/applications/:id"
+          element={
+            <DetailRoute
+              {...shared}
+              onUpdate={updateApplication}
+              onDelete={deleteApplication}
+              onAddEvent={addEvent}
+              onDeleteEvent={deleteEvent}
+              onEdit={id => setForm({ mode: 'edit', id })}
+              onAddToGoogle={addEventToGoogle}
+            />
+          }
         />
-      ) : currentPage === 'applications' ? (
-        <ApplicationsPage applications={applications} events={events} today={today} onOpen={openApplication} />
-      ) : (
-        <main className="dashboard page-width" id="main-content">
-          <section className="schedule-section" aria-label="Your schedule">
-            <div className="schedule-heading"><h1>Your schedule</h1><ViewTabs view={view} onViewChange={setView} /></div>
-            {isEmpty ? (
-              <>
-                <div className="surface desktop-welcome"><EmptyWelcome /></div>
-                <div className="surface timeline-empty"><p>Nothing on your timeline yet</p><span>Deadlines, interviews and assessments appear here by week.</span></div>
-              </>
-            ) : view === 'calendar' ? (
-              <CalendarView applications={applications} events={events} today={today} onOpen={openApplication} />
-            ) : (
-              <TimelineView applications={applications} events={events} today={today} onOpen={openApplication} />
-            )}
-          </section>
-          <UpcomingPanel items={getUpcomingItems(applications, events, today)} isEmpty={isEmpty} onOpen={openApplication} />
-        </main>
+        {/* Unknown URL -> Home */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+
+      <MobileNavigation onAdd={openAddForm} />
+
+      {form?.mode === 'add' && <ApplicationFormModal mode="add" onSave={saveForm} onClose={() => setForm(null)} />}
+      {editing && (
+        <ApplicationFormModal
+          mode="edit"
+          initial={{ ...editing, deadline: findDeadline(events, editing.id)?.date || '' }}
+          onSave={saveForm}
+          onClose={() => setForm(null)}
+        />
       )}
 
-      <MobileNavigation page={currentPage} onNavigate={setPage} />
+      <Toast toast={toast} onDismiss={dismissToast} />
     </div>
   )
+}
+
+// Route "/applications/:id": reads the id from the URL (useParams) and finds that application.
+function DetailRoute({ applications, events, today, ...handlers }) {
+  const { id } = useParams()
+  const application = applications.find(app => app.id === id)
+
+  if (!application) {
+    return (
+      <main className="detail-page page-width" id="main-content">
+        <div className="surface not-found">
+          <h1>Application not found</h1>
+          <p>It may have been deleted.</p>
+          <Link className="button button-outline" to="/applications">Back to applications</Link>
+        </div>
+      </main>
+    )
+  }
+
+  // key: start fresh (e.g. close open forms) when switching to a different application.
+  return <ApplicationDetailPage key={application.id} application={application} events={events} today={today} {...handlers} />
 }

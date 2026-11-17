@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Icon from './Icon'
 
 // Stages 1-5 are statuses; stage 6 is the final outcome (Offer or Denied).
@@ -8,6 +8,16 @@ export default function StatusStepper({ status, onChange }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const isFinal = status === 'Offer' || status === 'Denied'
   const currentIndex = isFinal ? STAGES.length : STAGES.indexOf(status)
+  const listRef = useRef(null)
+
+  // Phones: the steps scroll sideways. Keep the current step (or the last one,
+  // when the outcome menu is open) in view.
+  useEffect(() => {
+    const list = listRef.current
+    if (!list || list.scrollWidth <= list.clientWidth) return // desktop: everything fits
+    const step = list.children[menuOpen ? STAGES.length : currentIndex]
+    if (step) list.scrollLeft = step.offsetLeft + step.offsetWidth - list.clientWidth + 16
+  }, [currentIndex, menuOpen])
 
   function choose(newStatus) {
     onChange(newStatus)
@@ -19,7 +29,7 @@ export default function StatusStepper({ status, onChange }) {
   return (
     <section className="surface detail-card status-card" aria-labelledby="status-title">
       <h2 id="status-title">Status</h2>
-      <ol className="stepper">
+      <ol className="stepper" ref={listRef}>
         {stages.map((label, index) => {
           const state = index < currentIndex ? 'is-done' : index === currentIndex ? 'is-current' : ''
           const isLast = index === STAGES.length
@@ -36,18 +46,22 @@ export default function StatusStepper({ status, onChange }) {
                 <span className="step-marker">{index < currentIndex ? <Icon name="check" size={12} /> : index + 1}</span>
                 <span className="step-label">{label}</span>
               </button>
-              {isLast && menuOpen && (
-                <div className="outcome-menu" role="menu" aria-label="Final outcome">
-                  <p>Final outcome</p>
-                  <button type="button" role="menuitem" className={status === 'Offer' ? 'is-selected' : ''} onClick={() => choose('Offer')}><span className="outcome-dot offer" />Offer</button>
-                  <button type="button" role="menuitem" className={status === 'Denied' ? 'is-selected' : ''} onClick={() => choose('Denied')}><span className="outcome-dot" />Denied</button>
-                </div>
-              )}
             </li>
           )
         })}
       </ol>
-      <p className="card-hint">Click a stage to update the status. The last stage asks whether it was an Offer or Denied.</p>
+      {/* Outside the <ol> so the sideways-scrolling list on phones doesn't cut it off. */}
+      {menuOpen && (
+        <div className="outcome-menu" role="menu" aria-label="Final outcome">
+          <p>Final outcome</p>
+          <button type="button" role="menuitem" className={status === 'Offer' ? 'is-selected' : ''} onClick={() => choose('Offer')}><span className="outcome-dot offer" />Offer</button>
+          <button type="button" role="menuitem" className={status === 'Denied' ? 'is-selected' : ''} onClick={() => choose('Denied')}><span className="outcome-dot" />Denied</button>
+        </div>
+      )}
+      <p className="card-hint">
+        <span className="desktop-only">Click a stage to update the status. The last stage asks whether it was an Offer or Denied.</span>
+        <span className="mobile-only">Tap a stage to update. Swipe for more →</span>
+      </p>
     </section>
   )
 }

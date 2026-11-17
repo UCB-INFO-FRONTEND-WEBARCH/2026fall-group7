@@ -2,7 +2,7 @@ import { useState } from 'react'
 import Icon from './Icon'
 import EventCard from './EventCard'
 import { DEADLINE_KINDS } from '../data/constants'
-import { formatMonthYear, formatWeekdayDate, toDateKey } from '../data/dates'
+import { formatLongDate, formatMonthYear, formatWeekdayDate, toDateKey } from '../data/dates'
 import { sortEvents, withApplications } from '../data/schedule'
 
 // Build a Sunday-first month grid without a calendar library.
@@ -75,7 +75,10 @@ export default function CalendarView({ applications, events, today, onOpen }) {
 
       <section className="surface selected-day-card" aria-labelledby="selected-day-title" aria-live="polite">
         <div className="selected-day-heading">
-          <h2 id="selected-day-title">{formatWeekdayDate(selectedDate)}</h2>
+          <h2 id="selected-day-title">
+            <span className="desktop-only">{formatWeekdayDate(selectedDate)}</span>
+            <span className="mobile-only">{formatLongDate(selectedDate)}</span>
+          </h2>
           <span>{selectedEvents.length} {selectedEvents.length === 1 ? 'event' : 'events'}</span>
         </div>
         {selectedEvents.length > 0 ? (

@@ -37,6 +37,7 @@ const format = (key, options) => parseDateKey(key).toLocaleDateString('en-US', o
 export const formatMonthShort = key => format(key, { month: 'short' }) // "Nov"
 export const formatShortDate = key => format(key, { month: 'short', day: 'numeric' }) // "Nov 8"
 export const formatWeekdayDate = key => format(key, { weekday: 'short', month: 'short', day: 'numeric' }) // "Sat, Nov 8"
+export const formatLongDate = key => format(key, { weekday: 'long', month: 'short', day: 'numeric' }) // "Wednesday, Nov 12"
 export const formatMonthYear = key => format(key, { month: 'long', year: 'numeric' }) // "November 2026"
 
 // '14:00' -> '2:00 PM'

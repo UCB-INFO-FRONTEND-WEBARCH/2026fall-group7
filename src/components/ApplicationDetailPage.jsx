@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import Icon from './Icon'
 import StatusStepper from './StatusStepper'
 import MaterialsCard from './MaterialsCard'
@@ -10,8 +11,9 @@ import '../styles/detail.css'
 // "https://jobs.lever.co/notion/8f2c1a7e" -> "jobs.lever.co/notion/8f2c1a7e"
 const displayLink = link => link.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')
 
-export default function ApplicationDetailPage({ application, events, today, onBack, onUpdate, onDelete, onAddEvent, onDeleteEvent }) {
-  const [descriptionOpen, setDescriptionOpen] = useState(true)
+export default function ApplicationDetailPage({ application, events, today, onUpdate, onDelete, onAddEvent, onDeleteEvent, onEdit, onAddToGoogle }) {
+  // Desktop starts with the job description open; phones start with a short preview (like the mockups).
+  const [descriptionOpen, setDescriptionOpen] = useState(() => !window.matchMedia('(max-width: 900px)').matches)
   const [notesSaved, setNotesSaved] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const update = changes => onUpdate(application.id, changes)
@@ -19,7 +21,7 @@ export default function ApplicationDetailPage({ application, events, today, onBa
   return (
     <main className="detail-page page-width" id="main-content">
       <nav className="breadcrumb" aria-label="Breadcrumb">
-        <button type="button" onClick={onBack}>Applications</button> / <span aria-current="page">{application.company}</span>
+        <Link to="/applications">Applications</Link> / <span aria-current="page">{application.company}</span>
       </nav>
 
       <header className="detail-header">
@@ -34,8 +36,8 @@ export default function ApplicationDetailPage({ application, events, today, onBa
           )}
         </div>
         <div className="detail-actions">
-          {/* Edit details reuses the Add application form (next chunk). */}
-          <button className="button button-outline" type="button" aria-disabled="true"><Icon name="pencil" />Edit details</button>
+          {/* Opens the same form as Add application, filled in (App.jsx). */}
+          <button className="button button-outline" type="button" onClick={() => onEdit(application.id)}><Icon name="pencil" />Edit details</button>
           <button className="button button-danger" type="button" onClick={() => setConfirmingDelete(true)}><Icon name="trash" />Delete</button>
         </div>
       </header>
@@ -64,18 +66,17 @@ export default function ApplicationDetailPage({ application, events, today, onBa
         </div>
 
         <div className="detail-column">
-          <KeyDatesCard application={application} events={events} today={today} onAdd={onAddEvent} onDelete={onDeleteEvent} />
+          <KeyDatesCard application={application} events={events} today={today} onAdd={onAddEvent} onDelete={onDeleteEvent} onAddToGoogle={onAddToGoogle} />
 
           <section className="surface detail-card" aria-labelledby="description-title">
             <button className="card-heading collapse-toggle" type="button" aria-expanded={descriptionOpen} onClick={() => setDescriptionOpen(open => !open)}>
               <h2 id="description-title">Job description</h2>
               <Icon name={descriptionOpen ? 'down' : 'right'} />
             </button>
-            {descriptionOpen && (
-              application.description
-                ? <p className="job-description">{application.description}</p>
-                : <p className="card-empty">No description added.</p>
-            )}
+            {/* Collapsed = a two-line preview; open = the full text. */}
+            {application.description
+              ? <p className={`job-description ${descriptionOpen ? '' : 'is-clamped'}`}>{application.description}</p>
+              : <p className="card-empty">No description added.</p>}
           </section>
         </div>
       </div>
