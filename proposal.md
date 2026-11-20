@@ -2,7 +2,7 @@
 
 ## Group 7
 
-**Members:** Alejandro RodriguezGujri, SinghGujri Singh, Patrick RuanPatrick Ruan, Yaelle Tang
+**Members:** Alejandro Rodriguez, Gujri Singh, Patrick Ruan, Yaelle Tang
 
 ## Idea
 
