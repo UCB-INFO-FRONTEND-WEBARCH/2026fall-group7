@@ -24,28 +24,103 @@ export function isGoogleCalendarConfigured() {
 }
 
 // ---------------------------------------------------------------------------
-// TODO 1: sign in and get an access token.
-// Store it in `accessToken` and resolve once the user is signed in
-// (createCalendarEvent awaits this). Reuse the token until it expires.
+// Sign in with Google Identity Services (token model, browser only).
+// The GIS script is loaded in index.html and creates `window.google`.
+// We get an access token (valid ~1 hour) and keep it in memory; when it is
+// about to expire, the next request signs in again (usually a quick popup
+// that closes by itself, because the user already agreed).
 // ---------------------------------------------------------------------------
 let accessToken = null
+let tokenExpiresAt = 0      // ms timestamp
+let tokenClient = null
+let pendingSignIn = null    // shared Promise, so two clicks never open two popups
 
-export async function signIn() {
-  // TODO: sign the user in, then set accessToken.
-  void SCOPE
-  throw new Error('Google sign-in is not implemented yet')
+// Thrown when the user can't or won't sign in. App stops a "Sync all" loop on
+// this error instead of opening one popup per date.
+export class GoogleSignInError extends Error {
+  constructor(message) {
+    super(message)
+    this.name = 'GoogleSignInError'
+  }
+}
+
+const EXPIRY_MARGIN_MS = 60 * 1000 // renew one minute early
+
+function hasValidToken() {
+  return Boolean(accessToken) && Date.now() < tokenExpiresAt - EXPIRY_MARGIN_MS
+}
+
+export function signIn() {
+  if (pendingSignIn) return pendingSignIn
+
+  pendingSignIn = new Promise((resolve, reject) => {
+    const oauth2 = window.google?.accounts?.oauth2
+    if (!oauth2) {
+      reject(new GoogleSignInError('Google sign-in script has not loaded yet'))
+      return
+    }
+
+    tokenClient ??= oauth2.initTokenClient({ client_id: CLIENT_ID, scope: SCOPE, callback: () => {} })
+
+    // Google finished: either a token or an error such as "access_denied".
+    tokenClient.callback = response => {
+      if (response.error) {
+        reject(new GoogleSignInError(`Google sign-in failed: ${response.error}`))
+        return
+      }
+      if (!oauth2.hasGrantedAllScopes(response, SCOPE)) {
+        reject(new GoogleSignInError('Calendar permission was not granted'))
+        return
+      }
+      accessToken = response.access_token
+      tokenExpiresAt = Date.now() + Number(response.expires_in) * 1000
+      resolve()
+    }
+    // The popup was closed or blocked. Without this the Promise would never settle.
+    tokenClient.error_callback = error => {
+      reject(new GoogleSignInError(`Google sign-in was cancelled: ${error.type}`))
+    }
+
+    tokenClient.requestAccessToken()
+  }).finally(() => {
+    pendingSignIn = null
+  })
+
+  return pendingSignIn
 }
 
 // ---------------------------------------------------------------------------
-// TODO 2: create the event in Google Calendar and RETURN ITS ID (a string).
-// The request body is ready: toGoogleEvent(event, application), below.
-// Throw an error if it fails; App catches it and shows "Couldn't add".
+// Create the event in the user's main Google Calendar and return its id.
+// Any error is thrown; App catches it and shows "Couldn't add".
 // ---------------------------------------------------------------------------
+const EVENTS_URL = 'https://www.googleapis.com/calendar/v3/calendars/primary/events'
+
 export async function createCalendarEvent(event, application) {
-  if (!accessToken) await signIn()
-  // TODO: send toGoogleEvent(event, application) to the Calendar API, return the new event's id
-  void toGoogleEvent(event, application)
-  throw new Error('createCalendarEvent is not implemented yet')
+  if (!application) throw new Error('This date is not linked to an application')
+  if (!hasValidToken()) await signIn()
+
+  const response = await fetch(EVENTS_URL, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(toGoogleEvent(event, application)),
+  })
+
+  if (response.status === 401) {
+    // Token expired or was revoked: forget it so the next click signs in again.
+    accessToken = null
+    tokenExpiresAt = 0
+    throw new GoogleSignInError('Google session expired')
+  }
+  if (!response.ok) {
+    const details = await response.text()
+    throw new Error(`Google Calendar API error ${response.status}: ${details}`)
+  }
+
+  const created = await response.json()
+  return created.id
 }
 
 // ---------------------------------------------------------------------------

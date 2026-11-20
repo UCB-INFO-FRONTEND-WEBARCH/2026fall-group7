@@ -10,7 +10,7 @@ import Toast from './components/Toast'
 import { loadData, saveData } from './data/storage'
 import { todayKey } from './data/dates'
 import { createApplication, findDeadline, setDeadline } from './data/records'
-import { createCalendarEvent, isGoogleCalendarConfigured } from './services/googleCalendar'
+import { createCalendarEvent, GoogleSignInError, isGoogleCalendarConfigured } from './services/googleCalendar'
 
 export default function App() {
   //  Saved data 
@@ -104,6 +104,12 @@ export default function App() {
         added++
       } catch (error) {
         console.error(error)
+        // Not signed in (popup closed, access denied, session expired): stop here
+        // instead of opening a new sign-in popup for every remaining date.
+        if (error instanceof GoogleSignInError) {
+          setToast({ message: added ? `Added ${added} of ${toSync.length} dates. Google sign-in stopped the rest.` : 'Google sign-in didn’t finish. Try again.', error: true })
+          return
+        }
       }
     }
     setToast({
