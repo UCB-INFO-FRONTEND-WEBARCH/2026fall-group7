@@ -93,7 +93,6 @@ src/
     ids.js                     makeId() for new records
   services/
     googleCalendar.js          Google Calendar API: Google sign-in, create events, our dates → Google's format
-    jobDetails.js              "Fetch details" from a job link: placeholder (LLM step undecided)
   components/
     AppHeader.jsx              Desktop nav (NavLink) and compact mobile header
     MobileNavigation.jsx       Phone bottom navigation and floating Add button
@@ -109,7 +108,7 @@ src/
     StatusStepper.jsx          Status stages + Offer / Denied menu
     MaterialsCard.jsx          Materials checklist (tick, rename, delete, add)
     KeyDatesCard.jsx           Key dates (add, delete, Add to Google Calendar)
-    ApplicationFormModal.jsx   Add application (2 steps) and Edit details (same form)
+    ApplicationFormModal.jsx   Add application and Edit details (same form)
     Modal.jsx                  Reusable popup from the design system
     Toast.jsx                  "Application saved · View" message
     EmptyState.jsx             "No applications yet" / "No results" block
@@ -158,9 +157,9 @@ The startup flow is `index.html → src/main.jsx → src/App.jsx`. `main.jsx` wr
 | API | Status | Where |
 | --- | --- | --- |
 | **Google Calendar** | **Working.** Sign-in (Google Identity Services) and creating events are done and tested. Only Google accounts on the **Test users** list can sign in (see below). | `src/services/googleCalendar.js`, notes in [docs/google-calendar.md](docs/google-calendar.md) |
-| **LLM: read a job link** | **Not assigned yet; the team will decide whether to build it.** The Add modal's Fetch details flow (loading, success, "couldn't read this link") is built, but the actual link reading is a placeholder that **always fails**, so users fill in the details manually. | `src/services/jobDetails.js` |
+The class requires **at least one** external API, so Google Calendar alone meets it.
 
-The class requires **at least one** external API, so Google Calendar alone meets it. The LLM step is optional. Manual entry works fully without it.
+We dropped the "Fetch details" idea (an LLM reading a job link to fill in the form). It would need a server and an LLM API key, and many job sites can't be read anyway. The Add form keeps the job link as a plain field.
 
 ### Google Calendar: setup and who can use it
 
@@ -178,23 +177,10 @@ Without it, the app still runs and the Google buttons say "Google Calendar isn't
 
 **Allowed URLs:** the OAuth client allows `http://localhost:5173`. After deploying, add the deployed URL too, or sign-in fails with `origin_mismatch`.
 
-### LLM step: open decision
-> **Job-link extraction and LLM credentials belong behind a server endpoint, not in browser source.**
-
-Right now, pasting a link and clicking **Fetch details** shows "Fetching…", then "We couldn't read this link", and the user enters details manually. That's expected, not a bug.
-
-If the team builds it:
-- It needs a small **serverless function** (e.g. on Vercel or Netlify, wherever we deploy) that fetches the job page and asks an LLM to return `{ company, role, deadline, description }`. Browsers can't read most job sites directly (CORS), and **API keys must never be in front-end code**.
-- It needs an **LLM API key**, which usually costs a little per request.
-- Then only `fetchJobDetails(url)` in `src/services/jobDetails.js` changes. The modal already handles every outcome.
-
-If the team skips it, consider simplifying the Add modal so it doesn't offer a feature that always fails, e.g. go straight to the details form and keep the URL as a plain field.
-
 ## Next steps
 
-1. **Decide on the LLM step** (unassigned): build it, or simplify the Add modal (see "LLM step: open decision").
-2. **Small gaps:** edit an existing key date (right now: delete and re-add); decide what the "Upload" reminder button should do (it currently opens the application).
-3. **Before the demo:** turn off sample data (see above), deploy, and add the hosting redirect. For Google Calendar: add the deployed URL to the OAuth client's JavaScript origins, set `VITE_GOOGLE_CLIENT_ID` in the host's environment variables, and add the TAs' and instructor's Google accounts as Test users.
+1. **Small gaps:** edit an existing key date (right now: delete and re-add); decide what the "Upload" reminder button should do (it currently opens the application).
+2. **Before the demo:** turn off sample data (see above), deploy, and add the hosting redirect. For Google Calendar: add the deployed URL to the OAuth client's JavaScript origins, set `VITE_GOOGLE_CLIENT_ID` in the host's environment variables, and add the TAs' and instructor's Google accounts as Test users.
 
 ## Font sources
 
