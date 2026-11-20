@@ -92,7 +92,7 @@ src/
     constants.js               Statuses, date types, colors, icons, default materials
     ids.js                     makeId() for new records
   services/
-    googleCalendar.js          Google Calendar API: handoff file with 2 TODOs (see docs/google-calendar.md)
+    googleCalendar.js          Google Calendar API: Google sign-in, create events, our dates → Google's format
     jobDetails.js              "Fetch details" from a job link: placeholder (LLM step undecided)
   components/
     AppHeader.jsx              Desktop nav (NavLink) and compact mobile header
@@ -115,7 +115,7 @@ src/
     EmptyState.jsx             "No applications yet" / "No results" block
     Icon.jsx                   Small local SVG icons, no icon dependency
 docs/
-  google-calendar.md           How Google Calendar plugs into the app + the 2 TODOs
+  google-calendar.md           How Google Calendar plugs into the app
 ```
 
 ### How the files work together
@@ -132,13 +132,13 @@ The startup flow is `index.html → src/main.jsx → src/App.jsx`. `main.jsx` wr
 
 | File | Responsibility |
 | --- | --- |
-| `index.html` | Browser document, React root, page title, and viewport settings. |
+| `index.html` | Browser document, React root, page title, viewport settings, and the Google sign-in script. |
 | `package.json` | Dependencies (React, React Router) and dev/build/preview commands. |
 | `package-lock.json` | Exact installed dependency versions for consistent team installations. |
 | `vite.config.js` | Enables Vite's React plugin. |
 | `.gitignore` | Excludes generated and local files such as `node_modules/`, `dist/` and `.env.local`. |
 | `README.md` | Setup, routes, persistence, architecture, APIs, and next steps. |
-| `docs/google-calendar.md` | How the Google Calendar integration plugs into the app, and its TODOs. |
+| `docs/google-calendar.md` | How the Google Calendar integration plugs into the app. |
 | `proposal.md` | The team's product proposal. |
 
 `node_modules/` is created by installation; `dist/` is created by a production build. Neither is committed to Git.
@@ -157,10 +157,26 @@ The startup flow is `index.html → src/main.jsx → src/App.jsx`. `main.jsx` wr
 
 | API | Status | Where |
 | --- | --- | --- |
-| **Google Calendar** | Buttons, saving `googleEventId`, and converting dates to Google's format are done. **Sign-in and the API request are TODO.** | `src/services/googleCalendar.js`, notes in [docs/google-calendar.md](docs/google-calendar.md) |
+| **Google Calendar** | **Working.** Sign-in (Google Identity Services) and creating events are done and tested. Only Google accounts on the **Test users** list can sign in (see below). | `src/services/googleCalendar.js`, notes in [docs/google-calendar.md](docs/google-calendar.md) |
 | **LLM: read a job link** | **Not assigned yet; the team will decide whether to build it.** The Add modal's Fetch details flow (loading, success, "couldn't read this link") is built, but the actual link reading is a placeholder that **always fails**, so users fill in the details manually. | `src/services/jobDetails.js` |
 
 The class requires **at least one** external API, so Google Calendar alone meets it. The LLM step is optional. Manual entry works fully without it.
+
+### Google Calendar: setup and who can use it
+
+**Set up locally:** create `.env.local` in the project root with the OAuth Client ID (ask the teammate who owns the Google Cloud project), then restart `npm run dev`:
+
+```text
+VITE_GOOGLE_CLIENT_ID=1234-abc.apps.googleusercontent.com
+```
+
+Without it, the app still runs and the Google buttons say "Google Calendar isn't connected yet."
+
+**How it works:** the first click on "Add to Google Calendar" or "Sync" opens a Google sign-in popup. Each user signs in with their **own** account, and events go to **their own** main calendar. The token lasts about 1 hour and is kept only in memory; after it expires (or after a refresh), the next click signs in again. Events already added stay in Google Calendar.
+
+**Who can sign in:** the Google Cloud app is in **Testing** mode, so only accounts listed under **OAuth consent screen → Test users** (up to 100) can sign in. Others can use the rest of the app, but Google rejects their sign-in (`access_denied`). We are not publishing the app: the calendar permission is a sensitive scope, so publishing without Google's review shows an "unverified app" warning, and the review takes weeks.
+
+**Allowed URLs:** the OAuth client allows `http://localhost:5173`. After deploying, add the deployed URL too, or sign-in fails with `origin_mismatch`.
 
 ### LLM step: open decision
 > **Job-link extraction and LLM credentials belong behind a server endpoint, not in browser source.**
@@ -176,10 +192,9 @@ If the team skips it, consider simplifying the Add modal so it doesn't offer a f
 
 ## Next steps
 
-1. **Google Calendar:** fill in the two TODOs in `googleCalendar.js` (see docs/google-calendar.md).
-2. **Decide on the LLM step** (unassigned): build it, or simplify the Add modal (see "LLM step: open decision").
-3. **Small gaps:** edit an existing key date (right now: delete and re-add); decide what the "Upload" reminder button should do (it currently opens the application).
-4. **Before the demo:** turn off sample data (see above), deploy, and add the hosting redirect.
+1. **Decide on the LLM step** (unassigned): build it, or simplify the Add modal (see "LLM step: open decision").
+2. **Small gaps:** edit an existing key date (right now: delete and re-add); decide what the "Upload" reminder button should do (it currently opens the application).
+3. **Before the demo:** turn off sample data (see above), deploy, and add the hosting redirect. For Google Calendar: add the deployed URL to the OAuth client's JavaScript origins, set `VITE_GOOGLE_CLIENT_ID` in the host's environment variables, and add the TAs' and instructor's Google accounts as Test users.
 
 ## Font sources
 

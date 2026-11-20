@@ -1,7 +1,7 @@
-# Google Calendar: handoff notes
+# Google Calendar integration
 
-Everything on the app side is built. What's left is the Google part: signing in and creating the event.
-The code goes in **one file: `src/services/googleCalendar.js`**.
+Users can add their application dates to their own Google Calendar. All the Google code is in **one file: `src/services/googleCalendar.js`**.
+It runs only in the browser (no server, no client secret), using Google Identity Services for sign-in and `fetch` for the Calendar API.
 
 ## How it's wired
 
@@ -14,7 +14,7 @@ Both call `createCalendarEvent(event, application)` from `googleCalendar.js`. Wh
 `googleEventId`. The button then changes to "✓ In Google Calendar", and Sync skips it next time (no duplicates).
 Errors are caught and shown as a toast, so a failed request won't crash the app.
 
-Until a Client ID is set, both buttons show "Google Calendar isn't connected yet." That's expected.
+Until a Client ID is set, both buttons show "Google Calendar isn't connected yet."
 
 ### What an event looks like (saved in localStorage)
 ```js
@@ -22,25 +22,69 @@ Until a Client ID is set, both buttons show "Google Calendar isn't connected yet
 // kind: 'deadline' | 'interview' | 'assessment' | 'takehome' | 'offer'
 ```
 
-### Already done: `toGoogleEvent(event, application)`
-Turns our event into the request body Google expects (`summary`, `description`, `start`, `end`, time zone):
+## What `googleCalendar.js` does
+
+### `signIn()`: get an access token
+- The Google Identity Services script is loaded in `index.html` when the page loads. Loading it early means the sign-in popup opens
+  straight from the button click, so the browser doesn't block it.
+- `signIn()` asks Google for an access token with the scope `https://www.googleapis.com/auth/calendar.events` (create/edit events only,
+  not read the whole calendar). It returns a Promise that resolves once the user has signed in.
+- The token and its expiry time are kept **in memory only**. A token lasts about 1 hour; `createCalendarEvent()` signs in again when it has
+  less than a minute left. A page refresh also forgets it. Signing in again is usually a quick popup that closes by itself.
+- If the user closes the popup, denies access, or doesn't tick the calendar permission, it throws a `GoogleSignInError`.
+- Two clicks at once share the same sign-in, so only one popup opens.
+
+### `createCalendarEvent(event, application)`: add one event
+1. Signs in first if there is no valid token.
+2. Sends `POST https://www.googleapis.com/calendar/v3/calendars/primary/events` with the body from `toGoogleEvent()`.
+3. Returns the new Google event's `id`, which App saves as `googleEventId`.
+
+Errors:
+- **401** (token expired or revoked): forgets the token and throws a `GoogleSignInError`. The next click signs in again.
+- **Any other failure**: throws an error with Google's response text, printed in the browser console.
+
+`syncAllToGoogle()` in App stops at the first `GoogleSignInError`, so closing the popup during Sync doesn't open one popup per date.
+Dates added before that keep their `googleEventId`.
+
+### `toGoogleEvent(event, application)`: our event → Google's format
+Builds the request body (`summary`, `description`, `start`, `end`, time zone):
 - no time → all-day event
 - interview / assessment → starts at the time, lasts `durationMin` (default 60 min)
 - deadline / take-home / offer → 30-minute block **ending** at the due time
 
-## What our app expects from the setup
-However you set up the Google Cloud project, the app needs:
-- The **Client ID** in a file called **`.env.local`** at the project root:
-  `VITE_GOOGLE_CLIENT_ID=...`. It's already ignored by git, and you need to **restart `npm run dev`** after adding it.
-- `http://localhost:5173` as an authorized JavaScript origin (that's Vite's dev URL), plus the deployed URL later.
-- The scope `https://www.googleapis.com/auth/calendar.events` (already set as `SCOPE` in `googleCalendar.js`).
+## Google Cloud setup
 
-## The two TODOs in `googleCalendar.js`
+The project in Google Cloud Console needs:
+- The **Google Calendar API** enabled.
+- An **OAuth consent screen** (External, in **Testing** mode) with every Google account that should use the feature listed under **Test users** (up to 100).
+- An **OAuth client ID** of type *Web application*, with these **Authorized JavaScript origins**:
+  - `http://localhost:5173` (Vite's dev URL)
+  - the deployed URL, once we deploy. Otherwise sign-in fails with `origin_mismatch`.
 
-**TODO 1, `signIn()`:** get an access token however you like and store it in the `accessToken` variable.
-`createCalendarEvent()` calls `await signIn()` when there's no token yet, so `signIn()` should return a Promise
-that resolves once the user has signed in.
+The Client ID goes in **`.env.local`** at the project root (ignored by git). Restart `npm run dev` after adding it:
 
-**TODO 2, `createCalendarEvent()`:** create the event in Google Calendar and **return its id** (a string).
-`toGoogleEvent(event, application)` already gives you the request body. If it fails, throw an error and App shows
-a "Couldn't add" message.
+```text
+VITE_GOOGLE_CLIENT_ID=1234-abc.apps.googleusercontent.com
+```
+
+For the deployed site, set the same variable in the hosting service's environment variables. Vite puts it into the build.
+A Client ID isn't a secret (it's visible in the browser anyway), but keeping it out of git makes it easy to swap.
+
+## Who can use it
+
+Because the app is in **Testing** mode, only accounts on the Test users list can sign in. Anyone else can use the rest of the app,
+but Google rejects their sign-in (`access_denied`) and the app shows "Couldn't add to Google Calendar."
+Before the demo, add the TAs', instructor's and demo accounts as Test users.
+
+We're not publishing the app. `calendar.events` is a sensitive scope: publishing without Google's review shows an
+"unverified app" warning, and the review needs a privacy policy and can take weeks.
+
+## Troubleshooting
+
+| What you see | Cause |
+| --- | --- |
+| "Google Calendar isn't connected yet." | No `VITE_GOOGLE_CLIENT_ID`, or `npm run dev` wasn't restarted after adding it. |
+| Google shows `Error 403: access_denied` | This account isn't a Test user. |
+| Google shows `origin_mismatch` | The current URL (e.g. a different port or the deployed site) isn't an authorized JavaScript origin. |
+| Console: "Google sign-in script has not loaded yet" | The GIS script in `index.html` didn't load (offline, or blocked by an extension). |
+| Console: "Google Calendar API error 403 …" | The Calendar API isn't enabled in the Google Cloud project. |
