@@ -79,7 +79,7 @@ _(To be written by Alex.)_
 
 ### Gujri
 
-_(To be written by Gujri.)_
+For my part, I turned our static mockup into a working React app and made the data save between app visits. I thought the persistence and saving data part would be the hardest, but it was actually pretty quick. What took more thinking was figuring out how to structure the data, and what should be saved versus what should just reset when you refresh. Actually building and using the app also gave me a different view than the mockups. Once I tested it as a new user, I noticed small details that needed to be added or adjusted, like a way to remove a date, or making the materials checkboxes clearer. I also learned how much coordinating with teammates matters. Breaking my work into smaller chunks and leaving clear notes made it easier to avoid overriding anyone's work and to hand off the Google Calendar part smoothly.
 
 ### Patrick
 
