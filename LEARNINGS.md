@@ -83,4 +83,4 @@ For my part, I turned our static mockup into a working React app and made the da
 
 ### Patrick
 
-_(To be written by Patrick.)_
+For my part, I put together the presentation and planned the live demo. I learned how to map out the experience from the point of view of someone using the app for the first time. I started with an empty tracker and went through each step, from adding an application to checking off a résumé and scheduling an interview. I also installed the project and ran it on localhost. Setting up the demo helped me understand how the frontend connects to the Google Calendar API and why the localhost URL and test account matter. One thing that made localStorage click for me was refreshing the page after updating an application. I could see that the status, checklist, and dates were still there. I also learned that a demo is a good way to test the full experience. Going through the whole flow helped me see which steps needed a clearer explanation.
